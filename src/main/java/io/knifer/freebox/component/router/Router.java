@@ -44,7 +44,7 @@ public class Router {
     private Stage current;
 
     @Inject
-    public Router(Stage primary) {
+    public Router(@Nullable Stage primary) {
         this.primary = primary;
         this.mainStageStack = new Stack<>();
         this.secondaryStageAndControllerMap = new HashMap<>();

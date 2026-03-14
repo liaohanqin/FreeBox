@@ -30,6 +30,7 @@ public class FreeBoxApplication extends Application {
         headless = getParameters().getRaw().contains("--headless");
         if (headless) {
             ToastHelper.setHeadless(true);
+            javafx.application.Platform.setImplicitExit(false);
         }
 
         try {
@@ -41,13 +42,16 @@ public class FreeBoxApplication extends Application {
             loadConfigService = new LoadConfigService();
             loadConfigService.setOnSucceeded(event -> {
                 // 初始化IOC容器和上下文
-                IOC.init(stage);
+                IOC.init(headless ? null : stage);
                 context = IOC.getBean(Context.class);
                 context.init(this, () -> {
                     if (!headless) {
                         FXMLUtil.load(Views.HOME, stage);
                         stage.setTitle("FreeBox");
                         stage.show();
+                    } else {
+                        // 无头模式下保持进程存活
+                        new KeepAliveThread().start();
                     }
                     context.postEvent(AppEvents.APP_INITIALIZED);
                     closeSplashScreen();

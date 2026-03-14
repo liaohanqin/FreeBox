@@ -44,10 +44,12 @@ public class FreeBoxHttpServerHolder {
             ProxyCkHandler proxyCkHandler,
             ProxyHandler proxyHandler,
             ProxyCacheHandler proxyCacheHandler,
-            ProxyTsHandler proxyTsHandler
+            ProxyTsHandler proxyTsHandler,
+            EmacsFrontendHandler emacsFrontendHandler
     ) {
         this.contextProvider = contextProvider;
         this.handlers = List.of(
+                emacsFrontendHandler,  // 新增：Emacs 前端 API（优先级高，最先处理）
                 tvBoxPairingInfoHandler,
                 msgHandler,
                 proxyCkHandler,
