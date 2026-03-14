@@ -21,9 +21,11 @@ public class IOC {
         if (initFlag) {
             throw new AssertionError();
         }
-        injector = Guice.createInjector(binder ->
-            binder.bind(Stage.class).toInstance(primaryStage)
-        );
+        injector = Guice.createInjector(binder -> {
+            if (primaryStage != null) {
+                binder.bind(Stage.class).toInstance(primaryStage);
+            }
+        });
         initFlag = true;
     }
 

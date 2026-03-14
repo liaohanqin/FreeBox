@@ -35,7 +35,12 @@ import org.apache.commons.lang3.tuple.Pair;
 import org.tinylog.Level;
 
 import java.util.Collection;
+import java.util.List;
 import java.util.Map;
+import java.util.Optional;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 全局上下文
@@ -101,16 +106,18 @@ public class Context {
         Stage primaryStage = router.getPrimary();
 
         this.app = app;
-        primaryStage.setOnHidden(evt -> {
-            Collection<Pair<Stage, ? extends BaseController>> secondaries = router.getSecondaries();
+        if (primaryStage != null) {
+            primaryStage.setOnHidden(evt -> {
+                Collection<Pair<Stage, ? extends BaseController>> secondaries = router.getSecondaries();
 
-            if (!secondaries.isEmpty()) {
-                log.debug("primary stage is closed, hide other windows to exit the application.");
-                for (Pair<Stage, ? extends BaseController> pair : secondaries) {
-                    pair.getLeft().hide();
+                if (!secondaries.isEmpty()) {
+                    log.debug("primary stage is closed, hide other windows to exit the application.");
+                    for (Pair<Stage, ? extends BaseController> pair : secondaries) {
+                        pair.getLeft().hide();
+                    }
                 }
-            }
-        });
+            });
+        }
         logBaseInfo();
         // 配置日志等级
         logLevel = ConfigHelper.getLogLevel();
@@ -209,12 +216,88 @@ public class Context {
         return spiderTemplateMap.get(clientInfo.getClientType());
     }
 
+    private Map<String, SpiderTemplate> initializedFreeBoxTemplates = new ConcurrentHashMap<>();
+
+    /**
+     * 获取 FreeBox（CATVOD_SPIDER）SpiderTemplate，不依赖 WebSocket 客户端连接。
+     * 如果指定了 clientId，则使用对应的 ClientInfo；否则使用磁盘上第一个 CATVOD_SPIDER 类型的 ClientInfo。
+     * 适用于 Emacs 前端等无 TV 设备连接的场景。
+     * 首次调用时会自动异步初始化（下载配置文件）并等待完成。
+     *
+     * @param clientId 可选的 clientId，为 null 时自动选择
+     * @return 初始化完成后的 FreeBoxSpiderTemplate，如果没有可用 ClientInfo 则返回 null
+     */
+    public SpiderTemplate getFreeBoxSpiderTemplate(String clientId) {
+        ClientInfo clientInfo = null;
+
+        if (clientId != null && !clientId.isBlank()) {
+            Optional<ClientInfo> found = StorageHelper.find(clientId, ClientInfo.class);
+            if (found.isPresent() && found.get().getClientType() == ClientType.CATVOD_SPIDER) {
+                clientInfo = found.get();
+            }
+        }
+        if (clientInfo == null) {
+            // 自动选择第一个 CATVOD_SPIDER
+            Map<String, ClientInfo> allClients = StorageHelper.findAll(ClientInfo.class);
+            clientInfo = allClients.values()
+                    .stream()
+                    .filter(c -> c.getClientType() == ClientType.CATVOD_SPIDER)
+                    .findFirst()
+                    .orElse(null);
+        }
+        if (clientInfo == null) {
+            log.warn("getFreeBoxSpiderTemplate: no CATVOD_SPIDER client found");
+            return null;
+        }
+        // 使用 clientId 作为缓存 key
+        final String templateKey = clientInfo.getId();
+        if (initializedFreeBoxTemplates.containsKey(templateKey)) {
+            return initializedFreeBoxTemplates.get(templateKey);
+        }
+        // 临时设置 currentClient，让 FreeBoxSpiderTemplate.init() 能读取到 ClientInfo
+        clientManager.updateCurrentClient(clientInfo);
+        if (spiderTemplateMap == null) {
+            spiderTemplateMap = Map.of(
+                    ClientType.TVBOX_K, IOC.getBean(KebSocketSpiderTemplate.class),
+                    ClientType.CATVOD_SPIDER, IOC.getBean(FreeBoxSpiderTemplate.class)
+            );
+        }
+        SpiderTemplate template = spiderTemplateMap.get(ClientType.CATVOD_SPIDER);
+        // 初始化 template（需要在 JavaFX 线程触发，阻塞等待最多 30 秒）
+        CountDownLatch latch = new CountDownLatch(1);
+        javafx.application.Platform.runLater(() -> template.init(success -> latch.countDown()));
+        try {
+            if (!latch.await(30, TimeUnit.SECONDS)) {
+                log.warn("getFreeBoxSpiderTemplate: init timeout for clientId={}", templateKey);
+            } else {
+                initializedFreeBoxTemplates.put(templateKey, template);
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            log.warn("getFreeBoxSpiderTemplate: init interrupted for clientId={}", templateKey);
+        }
+        return template;
+    }
+
+    /**
+     * 列出所有已保存的 CATVOD_SPIDER 类型客户端信息
+     */
+    public List<ClientInfo> listFreeBoxClients() {
+        Map<String, ClientInfo> allClients = StorageHelper.findAll(ClientInfo.class);
+        return allClients.values()
+                .stream()
+                .filter(c -> c.getClientType() == ClientType.CATVOD_SPIDER)
+                .toList();
+    }
+
     public void destroy() {
         serviceManager.destroy();
         AsyncUtil.destroy();
         kebSocketTopicKeeper.destroy();
         if (initFlag) {
-            router.getPrimary().close();
+            if (router.getPrimary() != null) {
+                router.getPrimary().close();
+            }
             if (CollectionUtil.isNotEmpty(spiderTemplateMap)) {
                 spiderTemplateMap.values().forEach(SpiderTemplate::destroy);
             }
