@@ -38,6 +38,11 @@ import java.util.concurrent.atomic.AtomicBoolean;
 public class ToastHelper {
 
     private final AtomicBoolean showError = new AtomicBoolean(true);
+    private boolean headless = false;
+
+    public void setHeadless(boolean headless) {
+        ToastHelper.headless = headless;
+    }
 
     public void showSuccessI18n(String i18nKey) {
         showSuccess(I18nHelper.get(i18nKey));
@@ -50,6 +55,10 @@ public class ToastHelper {
     }
 
     public void showSuccess(String successMessage) {
+        if (headless) {
+            log.info("Success: {}", successMessage);
+            return;
+        }
         createNotification(successMessage)
                 .ifPresent(n -> {
                     n.position(Pos.TOP_CENTER)
@@ -67,6 +76,10 @@ public class ToastHelper {
         if (!showError.get()) {
             return;
         }
+        if (headless) {
+            log.error("Error: {}", errorMessage);
+            return;
+        }
         createNotification(errorMessage)
                 .ifPresent(n -> {
                     n.position(Pos.TOP_CENTER)
@@ -81,6 +94,10 @@ public class ToastHelper {
     }
 
     public void showWarning(String warningMessage) {
+        if (headless) {
+            log.warn("Warning: {}", warningMessage);
+            return;
+        }
         createNotification(warningMessage)
                 .ifPresent(n -> {
                     n.position(Pos.TOP_CENTER)
@@ -101,6 +118,10 @@ public class ToastHelper {
     }
 
     public void showInfo(String infoMessage) {
+        if (headless) {
+            log.info("Info: {}", infoMessage);
+            return;
+        }
         createNotification(infoMessage)
                 .ifPresent(n -> {
                     n.position(Pos.TOP_CENTER)
@@ -156,13 +177,16 @@ public class ToastHelper {
     }
 
     public void showException(Throwable e) {
+        log.error("Unknown exception", e);
+        if (headless) {
+            return;
+        }
         ExceptionDialog dialog = new ExceptionDialog(e);
 
         dialog.setTitle(I18nHelper.get(I18nKeys.ERROR));
         dialog.setContentText(I18nHelper.get(I18nKeys.ERROR_CONTEXT_MESSAGE));
         buildExceptionDialogBtn(dialog);
         dialog.show();
-        log.error("Unknown exception", e);
     }
 
     private void buildExceptionDialogBtn(ExceptionDialog dialog) {
@@ -202,6 +226,10 @@ public class ToastHelper {
             String contentI18n,
             @Nullable  EventHandler<DialogEvent> onCloseRequest
     ) {
+        if (headless) {
+            log.error("Error Alert: {} - {}", I18nHelper.get(headerI18n), I18nHelper.get(contentI18n));
+            return;
+        }
         Alert alert = new Alert(Alert.AlertType.ERROR, I18nHelper.get(contentI18n), ButtonTypes.OK);
 
         alert.setTitle(I18nHelper.get(I18nKeys.ERROR));

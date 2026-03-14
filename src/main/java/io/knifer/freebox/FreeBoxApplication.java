@@ -20,25 +20,35 @@ public class FreeBoxApplication extends Application {
 
     private SplashScreen splashScreen;
     private Context context;
+    private static boolean headless = false;
 
     @Override
     public void start(Stage stage) throws IOException {
         LoadConfigService loadConfigService;
         Logger logger;
 
+        headless = getParameters().getRaw().contains("--headless");
+        if (headless) {
+            ToastHelper.setHeadless(true);
+        }
+
         try {
             // 启动画面
-            splashScreen = new SplashScreen(0.8);
-            splashScreen.show();
+            if (!headless) {
+                splashScreen = new SplashScreen(0.8);
+                splashScreen.show();
+            }
             loadConfigService = new LoadConfigService();
             loadConfigService.setOnSucceeded(event -> {
                 // 初始化IOC容器和上下文
                 IOC.init(stage);
                 context = IOC.getBean(Context.class);
                 context.init(this, () -> {
-                    FXMLUtil.load(Views.HOME, stage);
-                    stage.setTitle("FreeBox");
-                    stage.show();
+                    if (!headless) {
+                        FXMLUtil.load(Views.HOME, stage);
+                        stage.setTitle("FreeBox");
+                        stage.show();
+                    }
                     context.postEvent(AppEvents.APP_INITIALIZED);
                     closeSplashScreen();
                 });
