@@ -190,7 +190,7 @@ public class FreeBoxSpiderTemplate implements SpiderTemplate {
         EXECUTOR.execute(() -> {
             String sourceKey = dto.getSourceKey();
             Object spider = getSpider(sourceKey);
-            HashMap<String, String> filterSelect = dto.getExtend();
+            HashMap<String, String> filterSelect = dto.getExtend() != null ? dto.getExtend() : new HashMap<>();
             boolean filter = !filterSelect.isEmpty();
             Result result = GsonUtil.fromJson(
                     SpiderInvokeUtil.categoryContent(
