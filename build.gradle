@@ -206,7 +206,9 @@ run {
             '--add-opens=javafx.graphics/javafx.scene=org.controlsfx.controls',
             '--add-opens=javafx.graphics/javafx.scene.text=cn.hutool.core',
             '--add-opens=org.tinylog.api/org.tinylog.configuration=io.knifer.freebox',
-            '-Dpolyglot.engine.WarnInterpreterOnly=false'
+            '-Dpolyglot.engine.WarnInterpreterOnly=false',
+            // 禁用 AWT headless 模式，确保系统托盘可用（SystemTray.isSupported() = true）
+            '-Djava.awt.headless=false'
     ]
     if (isPackaging) {
         jvmArgs += [
