@@ -107,10 +107,12 @@ public class FreeBoxSpiderTemplate implements SpiderTemplate {
                     doInit(configUrl, jsonVal, callback);
                 });
                 service.start();
-            } else if (configUrl.startsWith("file:///")) {
+            } else if (configUrl.startsWith("file://")) {
+                // 解析 file:// URL，移除前缀获取真实路径
+                String filePath = configUrl.substring(7); // 移除 "file://"
                 doInit(
                         configUrl,
-                        ApiConfigUtil.parseApiConfigJson(FileUtil.readString(configUrl, Charsets.UTF_8).trim()),
+                        ApiConfigUtil.parseApiConfigJson(FileUtil.readString(filePath, Charsets.UTF_8).trim()),
                         callback
                 );
             } else {

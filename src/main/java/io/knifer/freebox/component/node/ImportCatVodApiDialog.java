@@ -60,8 +60,10 @@ public class ImportCatVodApiDialog extends ImportUrlApiDialog {
                         )
                 );
                 service.start();
-            } else if (url.startsWith("file:///")) {
-                dealWithApiConfig(FileUtil.readString(url, Charsets.UTF_8), url, onAction);
+            } else if (url.startsWith("file://")) {
+                // 解析 file:// URL，移除前缀获取真实路径
+                String filePath = url.substring(7); // 移除 "file://"
+                dealWithApiConfig(FileUtil.readString(filePath, Charsets.UTF_8), url, onAction);
             }
         };
     }
