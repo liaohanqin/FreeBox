@@ -10,6 +10,7 @@ import io.knifer.freebox.helper.ToastHelper;
 import io.knifer.freebox.ioc.IOC;
 import io.knifer.freebox.service.LoadConfigService;
 import io.knifer.freebox.util.FXMLUtil;
+import io.knifer.freebox.util.catvod.SpiderInvokeUtil;
 import javafx.application.Application;
 import javafx.stage.Stage;
 import org.slf4j.Logger;
@@ -33,6 +34,7 @@ public class FreeBoxApplication extends Application {
         headless = getParameters().getRaw().contains("--headless");
         if (headless) {
             ToastHelper.setHeadless(true);
+            SpiderInvokeUtil.setHeadless(true);
             javafx.application.Platform.setImplicitExit(false);
         }
 

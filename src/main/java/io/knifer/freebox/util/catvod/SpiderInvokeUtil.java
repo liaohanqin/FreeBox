@@ -13,6 +13,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * 爬虫执行工具类
@@ -23,11 +24,26 @@ import java.util.Optional;
 @UtilityClass
 public class SpiderInvokeUtil {
 
+    private static final AtomicBoolean isHeadless = new AtomicBoolean(false);
+
+    /**
+     * 设置无头模式标志（由应用启动时调用）
+     */
+    public void setHeadless(boolean headless) {
+        isHeadless.set(headless);
+    }
+
     public boolean init(Object spider, @Nullable String extend) {
         Class<?> clazz = spider.getClass();
         Method method;
 
         try {
+            // 无头模式下对 Quark spider 做特殊处理
+            if (isHeadless.get() && QuarkHeadlessHelper.isQuarkSpider(spider)) {
+                log.info("Initializing Quark spider in headless mode with GUI flow disabled");
+                QuarkHeadlessHelper.setupHeadlessQuarkEnvironment();
+            }
+
             if (extend == null) {
                 method = clazz.getMethod("init");
                 method.invoke(spider);
