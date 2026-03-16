@@ -148,7 +148,14 @@ public class SpiderJarLoader {
             return load(key, Paths.get(parseJarUrl(jar)), jsFlag);
         } else if (jar.startsWith("file")) {
 
-            return load(key, Paths.get(jar.replace("file:///", StringUtils.EMPTY)), jsFlag);
+            // 使用 URI 解析，兼容 file:///、file://、file:/ 等多种形式
+            try {
+                return load(key, Paths.get(new URI(jar.replace("file:/", "file:///")
+                        .replaceAll("file:/{4,}", "file:///"))), jsFlag);
+            } catch (URISyntaxException e) {
+                log.error("invalid file URI for jar: {}", jar, e);
+                return false;
+            }
         } else if (jar.startsWith("http")) {
             jarPath = download(jar);
             if (jarPath == null) {
