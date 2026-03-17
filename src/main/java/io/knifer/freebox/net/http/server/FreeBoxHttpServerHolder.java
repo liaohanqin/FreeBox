@@ -45,7 +45,8 @@ public class FreeBoxHttpServerHolder {
             ProxyHandler proxyHandler,
             ProxyCacheHandler proxyCacheHandler,
             ProxyTsHandler proxyTsHandler,
-            EmacsFrontendHandler emacsFrontendHandler
+            EmacsFrontendHandler emacsFrontendHandler,
+            ProxyLiveM3uHandler proxyLiveM3uHandler
     ) {
         this.contextProvider = contextProvider;
         this.handlers = List.of(
@@ -55,7 +56,8 @@ public class FreeBoxHttpServerHolder {
                 proxyCkHandler,
                 proxyHandler,
                 proxyCacheHandler,
-                proxyTsHandler
+                proxyTsHandler,
+                proxyLiveM3uHandler
         );
     }
 
