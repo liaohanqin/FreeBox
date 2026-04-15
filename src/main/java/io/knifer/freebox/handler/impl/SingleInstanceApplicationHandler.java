@@ -34,6 +34,7 @@ public class SingleInstanceApplicationHandler implements NoParameterHandler {
 
     private final static String WAKEUP = "wakeup";
     private final static Path LOCKFILE_PATH = StorageHelper.getLocalStoragePath().resolve(".lock");
+    private final static int WAKEUP_TIMEOUT_MS = 3000;
 
     @Override
     public void handle() {
@@ -132,10 +133,11 @@ public class SingleInstanceApplicationHandler implements NoParameterHandler {
 
     private boolean tryToWakeupExistedInstance(int port) {
         try (
-                Socket socket = new Socket(InetAddress.getLocalHost(), port);
-                OutputStream out = socket.getOutputStream();
-                BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()))
+                Socket socket = new Socket(InetAddress.getLocalHost(), port)
         ) {
+            socket.setSoTimeout(WAKEUP_TIMEOUT_MS);
+            OutputStream out = socket.getOutputStream();
+            BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
             out.write(WAKEUP.getBytes());
             out.write(StrPool.LF.getBytes());
             out.flush();
