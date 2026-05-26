@@ -76,6 +76,8 @@ public class EmacsFrontendHandler implements HttpHandler {
                 handleGetDetail(httpExchange);
             } else if (path.equals("/api/play")) {
                 handleGetPlayUrl(httpExchange);
+            } else if (path.equals("/api/resolve-share")) {
+                handleResolveShare(httpExchange);
             } else {
                 sendErrorResponse(httpExchange, 404, "API 端点不存在");
             }
@@ -412,6 +414,55 @@ public class EmacsFrontendHandler implements HttpHandler {
             JSONObject response = new JSONObject()
                     .set("code", 200)
                     .set("data", result.isEmpty() ? new JSONObject() : result.get(0));
+            sendJsonResponse(httpExchange, response);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            sendErrorResponse(httpExchange, 500, "请求被中断");
+        }
+    }
+
+    /**
+     * GET /api/resolve-share - 延迟解析网盘分享链接的选集
+     * 参数: sourceKey, flag, shareLink, 可选: clientId
+     */
+    private void handleResolveShare(HttpExchange httpExchange) throws IOException {
+        Map<String, String> params = parseQueryParams(httpExchange);
+        String sourceKey = params.get("sourceKey");
+        String flag = params.get("flag");
+        String shareLink = params.get("shareLink");
+        String clientId = params.get("clientId");
+
+        if (sourceKey == null || sourceKey.isEmpty() ||
+                flag == null || flag.isEmpty() ||
+                shareLink == null || shareLink.isEmpty()) {
+            sendErrorResponse(httpExchange, 400, "缺少必要参数: sourceKey, flag, shareLink");
+            return;
+        }
+        SpiderTemplate spiderTemplate = contextProvider.get().getFreeBoxSpiderTemplate(clientId);
+        if (spiderTemplate == null) {
+            sendErrorResponse(httpExchange, 503, "没有可用的客户端配置");
+            return;
+        }
+
+        try {
+            CountDownLatch latch = new CountDownLatch(1);
+            List<String> result = new ArrayList<>();
+
+            spiderTemplate.resolveShare(sourceKey, flag, shareLink, urls -> {
+                if (urls != null) {
+                    result.add(urls);
+                }
+                latch.countDown();
+            });
+
+            if (!latch.await(30, TimeUnit.SECONDS)) {
+                sendErrorResponse(httpExchange, 504, "解析网盘分享超时");
+                return;
+            }
+
+            JSONObject response = new JSONObject()
+                    .set("code", 200)
+                    .set("data", new JSONObject().set("urls", result.isEmpty() ? "" : result.get(0)));
             sendJsonResponse(httpExchange, response);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();

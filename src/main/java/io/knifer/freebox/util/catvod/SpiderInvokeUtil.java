@@ -126,6 +126,13 @@ public class SpiderInvokeUtil {
                 .orElse(null);
     }
 
+    @Nullable
+    public String resolveShare(Object spider, String flag, String shareLink) {
+        return getMethod(spider, "resolveShare", String.class, String.class)
+                .map(method -> SpiderInvokeUtil.<String>invoke(spider, method, flag, shareLink))
+                .orElse(null);
+    }
+
     public boolean manualVideoCheck(Object spider) {
         return (boolean) getMethod(spider, "manualVideoCheck")
                 .map(method -> invoke(spider, method))

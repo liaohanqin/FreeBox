@@ -242,6 +242,17 @@ public class FreeBoxSpiderTemplate implements SpiderTemplate {
     }
 
     @Override
+    public void resolveShare(String sourceKey, String flag, String shareLink, Consumer<String> callback) {
+        EXECUTOR.execute(() -> {
+            Object spider = getSpider(sourceKey);
+            String result = SpiderInvokeUtil.resolveShare(spider, flag, shareLink);
+
+            log.info("resolveShare: sourceKey={}, flag={}, result={}", sourceKey, flag, result);
+            callback.accept(result);
+        });
+    }
+
+    @Override
     public void getPlayHistory(GetPlayHistoryDTO dto, Consumer<List<VodInfo>> callback) {
         ClientInfo clientInfo = getClientInfo();
 

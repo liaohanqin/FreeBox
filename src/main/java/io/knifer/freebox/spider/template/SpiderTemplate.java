@@ -62,6 +62,17 @@ public interface SpiderTemplate {
     void getPlayerContent(GetPlayerContentDTO dto, Consumer<JsonObject> callback);
 
     /**
+     * 延迟解析网盘分享链接的选集
+     * @param sourceKey 源 key
+     * @param flag 网盘源标识
+     * @param shareLink 分享链接
+     * @param callback 回调，返回 vodPlayUrl 格式的字符串
+     */
+    default void resolveShare(String sourceKey, String flag, String shareLink, Consumer<String> callback) {
+        callback.accept(null);
+    }
+
+    /**
      * 获取历史记录
      * @param dto 参数
      * @param callback 回调
