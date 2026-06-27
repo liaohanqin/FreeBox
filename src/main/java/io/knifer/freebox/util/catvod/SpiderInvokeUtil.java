@@ -44,6 +44,12 @@ public class SpiderInvokeUtil {
                 QuarkHeadlessHelper.setupHeadlessQuarkEnvironment();
             }
 
+            // 无头模式下对 BaiDu spider 做特殊处理
+            if (isHeadless.get() && BaiDuHeadlessHelper.isBaiDuSpider(spider)) {
+                log.info("Initializing BaiDu spider in headless mode with GUI flow disabled");
+                BaiDuHeadlessHelper.setupHeadlessBaiDuEnvironment();
+            }
+
             if (extend == null) {
                 method = clazz.getMethod("init");
                 method.invoke(spider);

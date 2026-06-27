@@ -80,6 +80,19 @@ public class SpiderJarLoader {
         return spiders.get(recent);
     }
 
+    /**
+     * 获取最近使用的 spider 的类加载器，用于反射加载 spider.jar 内的类。
+     * 供 EmacsFrontendHandler 热刷新 spider 内存使用。
+     */
+    @Nullable
+    public URLClassLoader getRecentClassLoader() {
+        URLClassLoader loader = loaders.get(recent);
+        if (loader == null && !loaders.isEmpty()) {
+            loader = loaders.values().iterator().next();
+        }
+        return loader;
+    }
+
     public Object getSpider(String key, String api, String ext, String jar) {
         try {
             boolean jsFlag = api.endsWith(".js");
